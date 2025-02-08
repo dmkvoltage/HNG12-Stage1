@@ -24,10 +24,12 @@ def is_prime(n: int) -> bool:
     return True
 
 def is_armstrong(n: int) -> bool:
-    digits = [int(d) for d in str(n)]
-    return sum(d ** len(digits) for d in digits) == n
+    digits = [int(d) for d in str(abs(n))]  # Use absolute value for Armstrong check
+    return sum(d ** len(digits) for d in digits) == abs(n)
 
 def is_perfect(n: int) -> bool:
+    if n < 1:
+        return False  # Negative numbers are not considered perfect
     return sum(i for i in range(1, n) if n % i == 0) == n
 
 def get_fun_fact(n: int) -> str:
@@ -38,23 +40,27 @@ def get_fun_fact(n: int) -> str:
 
 def generate_reason(number: int) -> str:
     if is_armstrong(number):
-        digits = [int(d) for d in str(number)]
+        digits = [int(d) for d in str(abs(number))]  # Use absolute value
         armstrong_sum = " + ".join(f"{d}^{len(digits)}" for d in digits)
-        return f"{number} is an Armstrong number because {armstrong_sum} = {number}"
+        return f"{number} is an Armstrong number because {armstrong_sum} = {abs(number)}"
     return get_fun_fact(number)
 
 # 🟢 **1️⃣ Path Parameter Version**
 @app.get("/api/classify-number/{number}")
-def classify_number_path(number: int = Path(..., description="The number to classify")):
-    return classify_helper(number)
+def classify_number_path(number: str = Path(..., description="The number to classify")):
+    if not number.lstrip("-").isdigit():  # Allow negative numbers
+        raise HTTPException(status_code=400, detail={"number": number, "error": True})
+    return classify_helper(int(number))
 
 # 🟢 **2️⃣ POST Request Version**
 class NumberInput(BaseModel):
-    number: int
+    number: str  # Accept string to validate first
 
 @app.post("/api/classify-number")
 def classify_number_post(data: NumberInput):
-    return classify_helper(data.number)
+    if not data.number.lstrip("-").isdigit():  # Allow negative numbers
+        raise HTTPException(status_code=400, detail={"number": data.number, "error": True})
+    return classify_helper(int(data.number))
 
 # Common function to classify numbers
 def classify_helper(number: int):
@@ -68,6 +74,6 @@ def classify_helper(number: int):
         "is_prime": is_prime(number),
         "is_perfect": is_perfect(number),
         "properties": properties,
-        "digit_sum": sum(int(d) for d in str(number)),
+        "digit_sum": sum(int(d) for d in str(abs(number))),  # Use absolute value
         "fun_fact": generate_reason(number)
     }
